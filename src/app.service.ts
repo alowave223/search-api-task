@@ -12,16 +12,17 @@ export class AppService {
 
     let result = await this.redis.get(cacheKey);
 
-    if (result) return JSON.parse(result);
+    if (!result)  {
+      await new Promise(res => setTimeout(res, 2000 + Math.random() * 1000));
+      result = JSON.stringify({ q: query.q, results: [`Result for ${query.q}`] });
+  
+      await this.redis.set(cacheKey, result, 'EX', 600);
+  
+      const date = new Date().toISOString().slice(0, 10);
+      await this.redis.lpush(`search:log:${date}`, query.q);
+    }
 
-    await new Promise(res => setTimeout(res, 2000 + Math.random() * 1000));
-    result = JSON.stringify({ q: query.q, results: [`Result for ${query.q}`] });
-
-    await this.redis.set(cacheKey, result, 'EX', 600);
     await this.redis.zincrby('search:popular', 1, query.q);
-
-    const date = new Date().toISOString().slice(0, 10);
-    await this.redis.lpush(`search:log:${date}`, query.q);
 
     return JSON.parse(result);
   }
