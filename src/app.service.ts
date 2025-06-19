@@ -47,7 +47,14 @@ export class AppService {
   async stats() {
     const top = await this.redis.zrevrange('search:popular', 0, 9, 'WITHSCORES');
 
-    return top;
+    const mappedTop = top.reduce((obj, item, index, arr) => {
+      if (index % 2 === 0) {
+        obj[item] = Number(arr[index + 1]);
+      }
+      return obj;
+    }, {});
+
+    return mappedTop;
   }
 
   async invalidate(query: InvalidateCacheDto) {
